@@ -3,289 +3,427 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>แอพบันทึกโอที (OT Tracker)</title>
+    <title>แอปบันทึกโอที</title>
+    <!-- Tailwind CSS CDN for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- PDF Generation Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-    <!-- Font data for PDF generation (moved to head for earlier loading) -->
-    <script src="https://storage.googleapis.com/gemini-pro-temp-exporters/THSarabun-normal.js"></script>
+    <!-- Google Fonts - Inter for modern typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* Custom styles to enhance Tailwind defaults and ensure responsiveness */
         body {
-            font-family: 'Sarabun', sans-serif;
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background as fallback */
+            /* New background style for gear pattern */
+            background-image: url('https://placehold.co/100x100/f0f0f0/cccccc?text=GEAR+PATTERN'); /* Placeholder for a subtle gear pattern */
+            background-repeat: repeat; /* Repeat the pattern across the background */
+            background-size: 100px 100px; /* Size of each repeating pattern */
+            color: #333; /* Dark gray text */
         }
-        .tab-active {
-            background-color: #3b82f6; /* bg-blue-500 */
-            color: white;
+        .container {
+            max-width: 900px; /* Max width for content */
+            margin: 2rem auto; /* Center container with margin */
+            padding: 1.5rem; /* Inner padding */
+            background-color: #ffffff; /* White background for the app card to ensure readability */
+            border-radius: 1rem; /* Rounded corners for the main container */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        }
+        /* Styling for input fields and selects */
+        input[type="date"], input[type="time"], input[type="number"], select, input[type="text"] {
+            padding: 0.75rem; /* Padding inside inputs */
+            border: 1px solid #d1d5db; /* Light gray border */
+            border-radius: 0.5rem; /* Rounded corners for inputs */
+            width: 100%; /* Full width */
+            box-sizing: border-box; /* Include padding in width */
+        }
+        /* Styling for general buttons */
+        button {
+            padding: 0.75rem 1.5rem; /* Padding for buttons */
+            border-radius: 0.5rem; /* Rounded corners for buttons */
+            font-weight: 600; /* Semi-bold text */
+            cursor: pointer; /* Pointer cursor on hover */
+            transition: background-color 0.2s ease-in-out; /* Smooth transition for hover effect */
+        }
+        /* Primary button styling */
+        .btn-primary {
+            background-color: #4f46e5; /* Indigo 600 */
+            color: #ffffff; /* White text */
+        }
+        .btn-primary:hover {
+            background-color: #4338ca; /* Darker indigo on hover */
+        }
+        /* Secondary button styling */
+        .btn-secondary {
+            background-color: #6b7280; /* Gray 500 */
+            color: #ffffff; /* White text */
+        }
+        .btn-secondary:hover {
+            background-color: #4b5563; /* Darker gray on hover */
+        }
+        /* Styling for summary cards */
+        .summary-card {
+            background-color: #f9fafb; /* Lighter gray background */
+            padding: 1rem; /* Padding */
+            border-radius: 0.75rem; /* Rounded corners */
+            border: 1px solid #e5e7eb; /* Light border */
+        }
+        /* Responsive adjustments for smaller screens */
+        @media (max-width: 768px) {
+            .container {
+                margin: 1rem; /* Smaller margin on mobile */
+                padding: 1rem; /* Smaller padding on mobile */
+            }
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-6 md:p-8 space-y-6">
-        
-        <!-- Header -->
-        <div class="text-center">
-            <h1 class="text-3xl font-bold text-gray-800">แอพบันทึกโอที</h1>
-            <p class="text-gray-500 mt-1">บันทึกและติดตามชั่วโมงการทำงานล่วงเวลาของคุณ</p>
-            <div id="auth-status" class="mt-2 text-xs text-gray-400">
-                <p>สถานะ: กำลังเชื่อมต่อ...</p>
-                <p id="user-id-display" class="break-all"></p>
-            </div>
-        </div>
+<body>
+    <div class="container">
+        <h1 class="text-3xl font-bold text-center mb-6 text-indigo-700">แอปบันทึกโอที</h1>
 
-        <!-- Input Form -->
-        <div class="bg-gray-50 p-6 rounded-xl border border-gray-200">
-            <h2 class="text-xl font-semibold text-gray-700 mb-4">เพิ่มรายการโอทีใหม่</h2>
-            <form id="ot-form" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-                <div class="space-y-1">
-                    <label for="ot-date" class="block text-sm font-medium text-gray-600">วันที่</label>
-                    <input type="date" id="ot-date" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="space-y-1">
-                    <label for="start-time" class="block text-sm font-medium text-gray-600">เวลาเริ่มต้น</label>
-                    <input type="time" id="start-time" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="space-y-1">
-                    <label for="end-time" class="block text-sm font-medium text-gray-600">เวลาสิ้นสุด</label>
-                    <input type="time" id="end-time" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="space-y-1 md:col-span-2 lg:col-span-1">
-                    <label for="description" class="block text-sm font-medium text-gray-600">หมายเหตุ</label>
-                    <input type="text" id="description" placeholder="เช่น ปิดโปรเจค" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <button type="submit" class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-300 lg:col-span-1 h-10">บันทึก</button>
-            </form>
-            <p id="error-message" class="text-red-500 text-sm mt-2"></p>
-        </div>
-
-        <!-- Summaries -->
-        <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
-             <h3 class="text-lg font-semibold text-gray-700 mb-3 text-center">สรุปยอดรวมชั่วโมงโอที</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+        <!-- ส่วนสำหรับบันทึกข้อมูลโอที -->
+        <section class="mb-8 p-6 bg-gray-50 rounded-xl shadow-inner">
+            <h2 class="text-2xl font-semibold mb-4 text-indigo-600">บันทึกข้อมูลโอที</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
-                    <p class="text-sm text-gray-600">วันนี้</p>
-                    <p id="summary-daily" class="text-2xl font-bold text-blue-600">0.00</p>
-                    <p class="text-xs text-gray-500">ชั่วโมง</p>
+                    <label for="otDate" class="block text-sm font-medium text-gray-700 mb-1">วันที่:</label>
+                    <input type="date" id="otDate" class="focus:ring-indigo-500 focus:border-indigo-500">
                 </div>
                 <div>
-                    <p class="text-sm text-gray-600">เดือนนี้</p>
-                    <p id="summary-monthly" class="text-2xl font-bold text-blue-600">0.00</p>
-                     <p class="text-xs text-gray-500">ชั่วโมง</p>
+                    <label for="shiftType" class="block text-sm font-medium text-gray-700 mb-1">กะ:</label>
+                    <select id="shiftType" class="focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="morning">กะเช้า</option>
+                        <option value="night">กะดึก</option>
+                    </select>
                 </div>
                 <div>
-                    <p class="text-sm text-gray-600">ปีนี้</p>
-                    <p id="summary-yearly" class="text-2xl font-bold text-blue-600">0.00</p>
-                     <p class="text-xs text-gray-500">ชั่วโมง</p>
+                    <label for="startTime" class="block text-sm font-medium text-gray-700 mb-1">เวลาเริ่มโอที:</label>
+                    <input type="time" id="startTime" class="focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label for="endTime" class="block text-sm font-medium text-gray-700 mb-1">เวลาสิ้นสุดโอที:</label>
+                    <input type="time" id="endTime" class="focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label for="otRate" class="block text-sm font-medium text-gray-700 mb-1">อัตราโอที (เท่า):</label>
+                    <input type="number" id="otRate" value="1.5" step="0.1" class="focus:ring-indigo-500 focus:border-indigo-500">
                 </div>
             </div>
-        </div>
+            <button id="addOtBtn" class="w-full btn-primary hover:bg-indigo-700">เพิ่มโอที</button>
+        </section>
 
-        <!-- OT Records List -->
-        <div>
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-gray-700">ประวัติการบันทึก</h2>
-                <button id="export-pdf-btn" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition duration-300 flex items-center gap-2 text-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    Export เป็น PDF
-                </button>
+        <!-- ส่วนสำหรับแสดงรายการโอทีที่บันทึกไว้ -->
+        <section class="mb-8 p-6 bg-gray-50 rounded-xl shadow-inner">
+            <h2 class="text-2xl font-semibold mb-4 text-indigo-600">รายการโอทีที่บันทึกไว้</h2>
+            <div id="otRecords" class="overflow-x-auto">
+                <table class="min-w-full bg-white rounded-lg shadow-md">
+                    <thead>
+                        <tr class="bg-indigo-100 text-indigo-800 uppercase text-sm leading-normal">
+                            <th class="py-3 px-6 text-left">วันที่</th>
+                            <th class="py-3 px-6 text-left">กะ</th>
+                            <th class="py-3 px-6 text-left">เวลา</th>
+                            <th class="py-3 px-6 text-left">ระยะเวลา (ชม.)</th>
+                            <th class="py-3 px-6 text-left">อัตรา</th>
+                            <th class="py-3 px-6 text-center">การกระทำ</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-gray-700 text-sm font-light" id="otTableBody">
+                        <!-- รายการโอทีจะถูกแทรกที่นี่โดย JavaScript -->
+                    </tbody>
+                </table>
             </div>
-            <div id="ot-list-container" class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <div class="hidden md:grid grid-cols-12 gap-4 p-4 bg-gray-50 border-b font-semibold text-sm text-gray-600">
-                    <div class="col-span-2">วันที่</div>
-                    <div class="col-span-2">เวลา</div>
-                    <div class="col-span-2">ชั่วโมง (ชม.)</div>
-                    <div class="col-span-5">หมายเหตุ</div>
-                    <div class="col-span-1 text-right"></div>
-                </div>
-                <div id="ot-list" class="divide-y divide-gray-200">
-                    <!-- OT records will be inserted here -->
-                     <p class="text-center text-gray-500 p-8">ยังไม่มีข้อมูล... ลองเพิ่มรายการโอทีใหม่ดูสิ</p>
-                </div>
-            </div>
-        </div>
+            <button id="clearAllBtn" class="w-full mt-4 btn-secondary hover:bg-gray-700">ล้างข้อมูลทั้งหมด</button>
+        </section>
 
+        <!-- ส่วนสำหรับสรุปโอที -->
+        <section class="mb-8 p-6 bg-gray-50 rounded-xl shadow-inner">
+            <h2 class="text-2xl font-semibold mb-4 text-indigo-600">สรุปโอที</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div class="summary-card">
+                    <h3 class="text-lg font-medium text-gray-800">โอทีรายวัน</h3>
+                    <p class="text-3xl font-bold text-indigo-700" id="dailyOtHours">0.00</p>
+                    <p class="text-gray-600">ชั่วโมง</p>
+                </div>
+                <div class="summary-card">
+                    <h3 class="text-lg font-medium text-gray-800">โอทีรายเดือน</h3>
+                    <p class="text-3xl font-bold text-indigo-700" id="monthlyOtHours">0.00</p>
+                    <p class="text-gray-600">ชั่วโมง</p>
+                </div>
+                <div class="summary-card">
+                    <h3 class="text-lg font-medium text-gray-800">โอทีรายปี</h3>
+                    <p class="text-3xl font-bold text-indigo-700" id="yearlyOtHours">0.00</p>
+                    <p class="text-gray-600">ชั่วโมง</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ส่วนสำหรับคำนวณเงินเดือน -->
+        <section class="p-6 bg-gray-50 rounded-xl shadow-inner">
+            <h2 class="text-2xl font-semibold mb-4 text-indigo-600">คำนวณเงินเดือน</h2>
+            <div class="mb-4">
+                <label for="baseSalary" class="block text-sm font-medium text-gray-700 mb-1">เงินเดือนพื้นฐาน:</label>
+                <input type="text" id="baseSalary" placeholder="เช่น 15000" class="focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div class="mb-4">
+                <label for="normalWorkingHours" class="block text-sm font-medium text-gray-700 mb-1">จำนวนชั่วโมงทำงานปกติ/เดือน:</label>
+                <input type="text" id="normalWorkingHours" value="160" class="focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div class="mb-4">
+                <label for="hourlyRateDisplay" class="block text-sm font-medium text-gray-700 mb-1">อัตราค่าจ้างต่อชั่วโมง (คำนวณ):</label>
+                <input type="text" id="hourlyRateDisplay" value="0.00" readonly class="bg-gray-200 cursor-not-allowed">
+            </div>
+            <button id="calculateSalaryBtn" class="w-full btn-primary hover:bg-indigo-700 mb-4">คำนวณเงินเดือนรวมโอที</button>
+            <div class="summary-card text-center">
+                <h3 class="text-lg font-medium text-gray-800">เงินเดือนรวมโอทีที่ประมาณการ</h3>
+                <p class="text-4xl font-bold text-green-700" id="totalSalary">0.00</p>
+                <p class="text-gray-600">บาท</p>
+            </div>
+        </section>
     </div>
 
-    <script type="module">
-        // Import Firebase modules
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <script>
+        // กำหนดคีย์สำหรับเก็บข้อมูลใน Local Storage
+        const localStorageKey = 'otTrackerRecords';
+        // อาร์เรย์สำหรับเก็บข้อมูลโอทีทั้งหมด
+        let otRecords = [];
 
-        // --- Firebase Configuration ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : { apiKey: "YOUR_API_KEY", authDomain: "YOUR_AUTH_DOMAIN", projectId: "YOUR_PROJECT_ID" };
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'ot-tracker-app';
+        // รับอ้างอิงถึง DOM elements ที่จำเป็น
+        const otDateInput = document.getElementById('otDate');
+        const shiftTypeSelect = document.getElementById('shiftType');
+        const startTimeInput = document.getElementById('startTime');
+        const endTimeInput = document.getElementById('endTime');
+        const otRateInput = document.getElementById('otRate');
+        const addOtBtn = document.getElementById('addOtBtn');
+        const otTableBody = document.getElementById('otTableBody');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const dailyOtHoursSpan = document.getElementById('dailyOtHours');
+        const monthlyOtHoursSpan = document.getElementById('monthlyOtHours');
+        const yearlyOtHoursSpan = document.getElementById('yearlyOtHours');
+        const baseSalaryInput = document.getElementById('baseSalary');
+        const normalWorkingHoursInput = document.getElementById('normalWorkingHours');
+        const hourlyRateDisplay = document.getElementById('hourlyRateDisplay');
+        const calculateSalaryBtn = document.getElementById('calculateSalaryBtn');
+        const totalSalarySpan = document.getElementById('totalSalary');
 
-        // --- Initialize Firebase ---
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+        /**
+         * บันทึกอาร์เรย์ otRecords ปัจจุบันลงใน localStorage
+         */
+        function saveRecords() {
+            try {
+                localStorage.setItem(localStorageKey, JSON.stringify(otRecords));
+            } catch (e) {
+                console.error("เกิดข้อผิดพลาดในการบันทึกข้อมูลลงใน localStorage:", e);
+            }
+        }
 
-        // --- PDF Library ---
-        const { jsPDF } = window.jspdf;
-
-        // --- DOM Elements ---
-        const otForm = document.getElementById('ot-form');
-        const otDateInput = document.getElementById('ot-date');
-        const startTimeInput = document.getElementById('start-time');
-        const endTimeInput = document.getElementById('end-time');
-        const descriptionInput = document.getElementById('description');
-        const otList = document.getElementById('ot-list');
-        const errorMessage = document.getElementById('error-message');
-        const summaryDaily = document.getElementById('summary-daily');
-        const summaryMonthly = document.getElementById('summary-monthly');
-        const summaryYearly = document.getElementById('summary-yearly');
-        const authStatusEl = document.getElementById('auth-status');
-        const userIdDisplayEl = document.getElementById('user-id-display');
-        const exportPdfBtn = document.getElementById('export-pdf-btn');
-
-        // --- State ---
-        let otCollectionRef;
-        let unsubscribe;
-        let currentRecords = []; // To store records for PDF export
-
-        // --- Authentication ---
-        onAuthStateChanged(auth, async user => {
-            if (user) {
-                const userId = user.uid;
-                authStatusEl.querySelector('p').textContent = 'สถานะ: เชื่อมต่อสำเร็จ';
-                userIdDisplayEl.textContent = `User ID: ${userId}`;
-                otCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/ot_records`);
-                
-                if (unsubscribe) unsubscribe();
-
-                const q = query(otCollectionRef, orderBy("date", "desc"));
-                unsubscribe = onSnapshot(q, (snapshot) => {
-                    currentRecords = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    renderOTList(currentRecords);
-                    updateSummaries(currentRecords);
-                }, (error) => {
-                    console.error("Error fetching data: ", error);
-                    errorMessage.textContent = "เกิดข้อผิดพลาดในการดึงข้อมูล";
-                });
-
-            } else {
-                authStatusEl.querySelector('p').textContent = 'สถานะ: กำลังตรวจสอบสิทธิ์...';
-                userIdDisplayEl.textContent = '';
-                try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch (error) {
-                    console.error("Authentication failed:", error);
-                    authStatusEl.querySelector('p').textContent = 'สถานะ: การเชื่อมต่อล้มเหลว';
-                    errorMessage.textContent = "ไม่สามารถเชื่อมต่อกับบริการได้ โปรดรีเฟรชหน้าจอ";
+        /**
+         * โหลด otRecords จาก localStorage
+         */
+        function loadRecords() {
+            try {
+                const storedRecords = localStorage.getItem(localStorageKey);
+                if (storedRecords) {
+                    otRecords = JSON.parse(storedRecords);
                 }
+            } catch (e) {
+                console.error("เกิดข้อผิดพลาดในการโหลดข้อมูลจาก localStorage:", e);
+                otRecords = []; // รีเซ็ตหากข้อมูลเสียหาย
+            }
+        }
+
+        /**
+         * คำนวณระยะเวลาระหว่างสองเวลา (HH:MM) เป็นชั่วโมง
+         * รองรับการคำนวณกะข้ามคืน (เช่น 22:00 ถึง 06:00)
+         * @param {string} start - เวลาเริ่มต้นในรูปแบบ HH:MM
+         * @param {string} end - เวลาสิ้นสุดในรูปแบบ HH:MM
+         * @returns {number} ระยะเวลาเป็นชั่วโมง
+         */
+        function calculateOtDuration(start, end) {
+            const [startHour, startMinute] = start.split(':').map(Number);
+            const [endHour, endMinute] = end.split(':').map(Number);
+
+            let startDate = new Date();
+            startDate.setHours(startHour, startMinute, 0, 0);
+
+            let endDate = new Date();
+            endDate.setHours(endHour, endMinute, 0, 0);
+
+            // หากเวลาสิ้นสุดเร็วกว่าเวลาเริ่มต้น แสดงว่าเป็นกะข้ามคืน
+            if (endDate < startDate) {
+                endDate.setDate(endDate.getDate() + 1); // เพิ่ม 1 วันให้กับวันที่สิ้นสุด
+            }
+
+            const diffMs = endDate - startDate; // ผลต่างเป็นมิลลิวินาที
+            const diffHours = diffMs / (1000 * 60 * 60); // แปลงเป็นชั่วโมง
+            return diffHours;
+        }
+
+        /**
+         * แสดงผลรายการโอทีทั้งหมดลงในตารางและอัปเดตข้อมูลสรุป
+         */
+        function renderRecords() {
+            otTableBody.innerHTML = ''; // ล้างแถวที่มีอยู่เดิม
+
+            otRecords.forEach((record, index) => {
+                const row = otTableBody.insertRow();
+                row.className = 'border-b border-gray-200 hover:bg-gray-100';
+
+                row.innerHTML = `
+                    <td class="py-3 px-6 text-left whitespace-nowrap">${record.date}</td>
+                    <td class="py-3 px-6 text-left">${record.shiftType === 'morning' ? 'กะเช้า' : 'กะดึก'}</td>
+                    <td class="py-3 px-6 text-left">${record.startTime} - ${record.endTime}</td>
+                    <td class="py-3 px-6 text-left">${record.durationHours.toFixed(2)}</td>
+                    <td class="py-3 px-6 text-left">${record.otRate.toFixed(1)}x</td>
+                    <td class="py-3 px-6 text-center">
+                        <button class="delete-btn bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-full text-xs" data-index="${index}">ลบ</button>
+                    </td>
+                `;
+            });
+
+            updateSummaries();
+            calculateTotalSalary(); // คำนวณเงินเดือนใหม่ทุกครั้งที่มีการเปลี่ยนแปลงข้อมูล
+        }
+
+        /**
+         * อัปเดตสรุปชั่วโมงโอทีรายวัน รายเดือน และรายปี
+         */
+        function updateSummaries() {
+            const today = new Date();
+            const currentMonth = today.getMonth();
+            const currentYear = today.getFullYear();
+            const todayDateString = today.toISOString().split('T')[0]; // รูปแบบ YYYY-MM-DD
+
+            let dailyOt = 0;
+            let monthlyOt = 0;
+            let yearlyOt = 0;
+
+            otRecords.forEach(record => {
+                const recordDate = new Date(record.date);
+                const recordMonth = recordDate.getMonth();
+                const recordYear = recordDate.getFullYear();
+
+                // ใช้ durationHours ในการสรุปโอที
+                if (record.date === todayDateString) {
+                    dailyOt += record.durationHours;
+                }
+                if (recordMonth === currentMonth && recordYear === currentYear) {
+                    monthlyOt += record.durationHours;
+                }
+                if (recordYear === currentYear) {
+                    yearlyOt += record.durationHours;
+                }
+            });
+
+            dailyOtHoursSpan.textContent = dailyOt.toFixed(2);
+            monthlyOtHoursSpan.textContent = monthlyOt.toFixed(2);
+            yearlyOtHoursSpan.textContent = yearlyOt.toFixed(2);
+        }
+
+        /**
+         * คำนวณเงินเดือนรวมโอทีที่ประมาณการ
+         */
+        function calculateTotalSalary() {
+            // parseFloat() จะแปลงค่าจาก input type="text" ให้เป็นตัวเลข
+            const baseSalary = parseFloat(baseSalaryInput.value) || 0;
+            const normalWorkingHours = parseFloat(normalWorkingHoursInput.value) || 1; // Default to 1 to prevent division by zero
+
+            // Calculate hourly rate based on base salary and normal working hours
+            const calculatedHourlyRate = normalWorkingHours > 0 ? (baseSalary / normalWorkingHours) : 0;
+            hourlyRateDisplay.value = calculatedHourlyRate.toFixed(2); // Display the calculated hourly rate
+
+            let totalOtPay = 0;
+            otRecords.forEach(record => {
+                // ใช้ durationHours ในการคำนวณค่าโอที
+                totalOtPay += record.durationHours * calculatedHourlyRate;
+            });
+
+            const totalSalary = baseSalary + totalOtPay;
+            totalSalarySpan.textContent = totalSalary.toFixed(2);
+        }
+
+        // --- Event Listeners ---
+
+        // เพิ่ม Listener สำหรับปุ่ม "เพิ่มโอที"
+        addOtBtn.addEventListener('click', () => {
+            const date = otDateInput.value;
+            const shiftType = shiftTypeSelect.value;
+            const startTime = startTimeInput.value;
+            const endTime = endTimeInput.value;
+            const otRate = parseFloat(otRateInput.value); // ยังคงรับค่าอัตราโอทีไว้ แต่ไม่ได้ใช้เป็นตัวคูณใน calculatedOtHours
+
+            // ตรวจสอบความถูกต้องของข้อมูล
+            if (!date || !startTime || !endTime || isNaN(otRate) || otRate <= 0) {
+                // ใช้ alert เพื่อความง่าย แต่ในแอปจริงควรใช้ modal ที่กำหนดเอง
+                alert("กรุณากรอกข้อมูลโอทีให้ครบถ้วนและถูกต้อง!");
+                return;
+            }
+
+            const durationHours = calculateOtDuration(startTime, endTime);
+            // เปลี่ยนการคำนวณ: ชั่วโมงโอทีที่คำนวณได้เท่ากับระยะเวลาโอทีจริง
+            const calculatedOtHours = durationHours;
+
+            const newRecord = {
+                date,
+                shiftType,
+                startTime,
+                endTime,
+                durationHours,
+                otRate, // ยังคงเก็บค่า otRate ไว้ใน record เผื่อต้องการใช้ในอนาคต
+                calculatedOtHours // ตอนนี้คือ durationHours
+            };
+
+            otRecords.push(newRecord); // เพิ่มข้อมูลใหม่ลงในอาร์เรย์
+            saveRecords(); // บันทึกข้อมูลลง localStorage
+            renderRecords(); // แสดงผลข้อมูลใหม่ในตาราง
+
+            // ล้างฟอร์มหลังจากเพิ่มข้อมูล
+            otDateInput.value = '';
+            startTimeInput.value = '';
+            endTimeInput.value = '';
+            otRateInput.value = '1.5'; // รีเซ็ตเป็นค่าเริ่มต้น
+        });
+
+        // ใช้ Event Delegation สำหรับปุ่ม "ลบ" ในตาราง
+        otTableBody.addEventListener('click', (event) => {
+            if (event.target.classList.contains('delete-btn')) {
+                const indexToDelete = parseInt(event.target.dataset.index);
+                otRecords.splice(indexToDelete, 1); // ลบข้อมูลออกจากอาร์เรย์
+                saveRecords(); // บันทึกข้อมูลที่อัปเดต
+                renderRecords(); // แสดงผลข้อมูลใหม่
             }
         });
 
-        // --- Functions ---
-
-        function calculateDuration(startTime, endTime) {
-            const start = new Date(`1970-01-01T${startTime}:00`);
-            const end = new Date(`1970-01-01T${endTime}:00`);
-            let diff = end - start;
-            if (diff < 0) diff += 24 * 60 * 60 * 1000;
-            return diff / (1000 * 60 * 60);
-        }
-
-        function renderOTList(records) {
-            otList.innerHTML = '';
-            if (records.length === 0) {
-                otList.innerHTML = `<p class="text-center text-gray-500 p-8">ยังไม่มีข้อมูล... ลองเพิ่มรายการโอทีใหม่ดูสิ</p>`;
-                exportPdfBtn.disabled = true;
-                exportPdfBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                return;
+        // เพิ่ม Listener สำหรับปุ่ม "ล้างข้อมูลทั้งหมด"
+        clearAllBtn.addEventListener('click', () => {
+            // ใช้ confirm เพื่อความง่าย แต่ในแอปจริงควรใช้ modal ที่กำหนดเอง
+            if (confirm("คุณแน่ใจหรือไม่ที่จะล้างข้อมูลโอทีทั้งหมด?")) {
+                otRecords = []; // ล้างอาร์เรย์ข้อมูล
+                saveRecords(); // บันทึกการเปลี่ยนแปลง (ล้างข้อมูลใน localStorage)
+                renderRecords(); // แสดงผลตารางที่ว่างเปล่า
             }
-            
-            exportPdfBtn.disabled = false;
-            exportPdfBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        });
 
-            records.forEach(record => {
-                const duration = record.durationHours || 0;
-                const recordEl = document.createElement('div');
-                recordEl.className = 'grid grid-cols-6 md:grid-cols-12 gap-4 p-4 items-center text-sm';
-                recordEl.innerHTML = `
-                    <div class="col-span-6 md:hidden">
-                        <p class="font-semibold text-gray-800">${new Date(record.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
-                        <p class="text-gray-600">เวลา: ${record.startTime} - ${record.endTime}</p>
-                        <p class="text-gray-600">รวม: <span class="font-bold text-blue-600">${duration.toFixed(2)}</span> ชม.</p>
-                        <p class="text-gray-500 italic break-words">${record.description || '-'}</p>
-                    </div>
-                     <div class="col-span-6 md:hidden flex justify-end items-center">
-                        <button data-id="${record.id}" class="delete-btn text-red-500 hover:text-red-700 font-semibold py-1 px-2 rounded">ลบ</button>
-                    </div>
-                    <div class="hidden md:block col-span-2 text-gray-700">${new Date(record.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
-                    <div class="hidden md:block col-span-2 text-gray-600">${record.startTime} - ${record.endTime}</div>
-                    <div class="hidden md:block col-span-2 font-semibold text-blue-600">${duration.toFixed(2)}</div>
-                    <div class="hidden md:block col-span-5 text-gray-600 break-words">${record.description || '-'}</div>
-                    <div class="hidden md:block col-span-1 text-right">
-                        <button data-id="${record.id}" class="delete-btn text-red-500 hover:text-red-700 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                    </div>
-                `;
-                otList.appendChild(recordEl);
-            });
-        }
+        // เพิ่ม Listener สำหรับปุ่ม "คำนวณเงินเดือนรวมโอที"
+        calculateSalaryBtn.addEventListener('click', calculateTotalSalary);
 
-        function updateSummaries(records) {
-            const now = new Date();
-            const todayStr = now.toISOString().split('T')[0];
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
-            let dailyTotal = 0, monthlyTotal = 0, yearlyTotal = 0;
-            records.forEach(record => {
-                const recordDate = new Date(record.date);
-                const duration = record.durationHours || 0;
-                if (recordDate.getFullYear() === currentYear) {
-                    yearlyTotal += duration;
-                    if (recordDate.getMonth() === currentMonth) {
-                        monthlyTotal += duration;
-                        if (record.date === todayStr) {
-                            dailyTotal += duration;
-                        }
-                    }
-                }
-            });
-            summaryDaily.textContent = dailyTotal.toFixed(2);
-            summaryMonthly.textContent = monthlyTotal.toFixed(2);
-            summaryYearly.textContent = yearlyTotal.toFixed(2);
-        }
+        // เพิ่ม Listener เพื่อคำนวณเงินเดือนใหม่เมื่อเงินเดือนพื้นฐานหรืออัตราค่าจ้างต่อชั่วโมงมีการเปลี่ยนแปลง
+        baseSalaryInput.addEventListener('input', calculateTotalSalary);
+        normalWorkingHoursInput.addEventListener('input', calculateTotalSalary);
 
-        /**
-         * Waits for a global variable to be defined.
-         * @param {string} variableName The name of the global variable to wait for.
-         * @param {number} timeout The maximum time to wait in milliseconds.
-         * @returns {Promise<void>} A promise that resolves when the variable is defined.
-         */
-        function waitForGlobal(variableName, timeout = 3000) {
-            return new Promise((resolve, reject) => {
-                const startTime = Date.now();
-                const interval = setInterval(() => {
-                    if (typeof window[variableName] !== 'undefined') {
-                        clearInterval(interval);
-                        resolve();
-                    } else if (Date.now() - startTime > timeout) {
-                        clearInterval(interval);
-                        reject(new Error(`Timed out waiting for ${variableName}`));
-                    }
-                }, 100); // Check every 100ms
-            });
-        }
-        
-        /**
-         * Exports the current OT data to a PDF file.
-         */
-        async function exportToPDF() {
-            errorMessage.textContent = '';
+        // --- การเริ่มต้นแอป ---
+        // เมื่อ DOM โหลดเสร็จสมบูรณ์
+        document.addEventListener('DOMContentLoaded', () => {
+            // กำหนดวันที่ปัจจุบันเป็นค่าเริ่มต้นในช่อง input วันที่
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0'); // เดือนเป็น 0-indexed
+            const dd = String(today.getDate()).padStart(2, '0');
+            otDateInput.value = `${yyyy}-${mm}-${dd}`;
 
-            if (currentRecords.length === 0) {
+            loadRecords(); // โหลดข้อมูลที่มีอยู่จาก localStorage
+            renderRecords(); // แสดงผลข้อมูลเริ่มต้นและอัปเดตสรุป
+            calculateTotalSalary(); // คำนวณเงินเดือนเริ่มต้น
+        });
+    </script>
+</body>
+</html>
+
             
